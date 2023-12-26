@@ -1,0 +1,747 @@
+openapi: 3.0.0
+info:
+  title: Простий REST API
+  version: 1.0.0
+  description: Веб-сайт з оголошеннями
+tags:
+  - name: user
+    description: Все про користувачів
+  - name: ad
+    description: Все про оголошення
+  - name: location
+    description: Все про локації
+paths:
+  /user:
+    post:
+      tags:
+       - user
+      summary: Створити нового користувача
+      description: Створює нового користувача
+      operationId: createUser
+      requestBody:
+        description: Створення об'єкту Користувач
+        content:
+          application/json:
+            schema: 
+              $ref: '#/components/schemas/User'
+          application/xml:
+            schema:
+              $ref: '#/components/schemas/User'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/User'
+      responses:
+        default:
+          description: Користувач успішно створений
+          content:
+            application/json:
+              schema: 
+                $ref: '#/components/schemas/User'
+            application/xml:
+              schema:
+                $ref: '#/components/schemas/User'
+      security:
+        - oauth2: ['admin']
+  /user/register:
+    post:
+      tags:
+        - user
+      summary: Реєстрація нового користувача
+      description: Реєструє нового користувача на сайті
+      operationId: registerUser
+      requestBody:
+        description: Дані нового користувача
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/User'
+      responses:
+        '201':
+          description: Користувач успішно зареєстрований
+          content:
+            application/json:
+              schema: 
+                $ref: '#/components/schemas/User'
+        '400':
+          description: Невірні дані користувача
+      security:
+        - oauth2: ['write']
+  /user/login:
+    post:
+      tags:
+        - user
+      summary: Авторизація користувача
+      description: Здійснює процес автентифікації користувача
+      operationId: loginUser
+      requestBody:
+        description: Дані авторизації користувача
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - username
+                - password
+              properties:
+                username:
+                  type: string
+                  description: Логін користувача
+                password:
+                  type: string
+                  format: password
+                  description: Пароль користувача
+      responses:
+        '200':
+          description: Успішна авторизація
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  token:
+                    type: string
+                    description: Токен доступу
+          headers:
+            X-Rate-Limit:
+              description: calls per hour allowed by the user
+              schema:
+                type: integer
+                format: int32
+            X-Expires-After:
+              description: date in UTC when token expires
+              schema:
+                type: string
+                format: date-time
+        '401':
+          description: Невірний логін чи пароль
+      security:
+        - oauth2: ['write']
+  /user/logout:
+    get:
+      tags:
+        - user
+      summary: Вихід користувача
+      description: Завершує сеанс авторизації користувача
+      operationId: logoutUser
+      parameters: []
+      responses:
+        '200':
+          description: Успішний вихід
+          content:
+            application/json:
+              example: |
+                {"message": "Ви успішно вийшли з системи"}
+        default:
+          description: Помилка виходу, якщо користувач не був авторизований
+      security:
+        - oauth2: ['read']
+  /user/profile:
+    get:
+      tags:
+        - user
+      summary: Профіль користувача
+      description: Повертає інформацію про профіль зареєстрованого користувача
+      operationId: getUserProfile
+      responses:
+        '200':
+          description: Успішний запит
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '401':
+          description: Користувач не авторизований
+      security:
+        - oauth2: ['read']
+  /user/{userId}:
+    get:
+      tags: 
+       - user
+      summary: Отримати користувача за id
+      description: Повертає користувача за id
+      operationId: getUserById
+      parameters:
+       - name: userId
+         in: path
+         description: Повертає користувача по id
+         required: true
+         schema:
+           type: integer
+           format: int64
+       - name: page
+         in: query
+         description: Номер сторінки
+         required: false
+         schema: 
+           type: integer
+           default: 1
+       - name: limit
+         in: query
+         description: Кількість записів на сторінці
+         required: false
+         schema: 
+          type: integer
+          default: 10
+      responses:
+        '200':
+          description: Успішний запит
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'          
+            application/xml:
+              schema:
+                $ref: '#/components/schemas/User'
+        '400':
+          description: Невдалий запит
+        '404':
+          description: Користувач не знайдений за данною id адресою
+      security:
+        - oauth2: ['read']
+    put:
+      tags:
+        - user
+      summary: Редагувати користувача за id
+      description: Редагує користувача за id
+      parameters:
+       - name: userId
+         in: path
+         description: Повертає користувача по id
+         required: true
+         schema:
+          type: integer
+          format: int64
+       - name: name
+         in: query
+         description: Ім'я користувача
+         required: false
+         schema:
+          type: string
+      operationId: updateUserById
+      requestBody:
+        description: Редагування об'єкту Користувач
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/User'
+          application/xml:
+            schema:
+              $ref: '#/components/schemas/User'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/User'
+      responses:
+        '405':
+          description: Невірний запит
+      security:
+        - oauth2: ['write']
+    delete:
+      tags:
+        - user
+      summary: Видалити користувача за id
+      description: Видаляє користувача за id
+      parameters:
+       - name: userId
+         in: path
+         description: Повертає користувача за id
+         required: true
+         schema:
+          type: integer
+          format: int64
+      operationId: deleteUserById
+      responses:
+        '200':
+          description: Користувач із заданною id успішно видалений
+        '400':
+          description: Невдалий запит
+        '404':
+          description: Користувач не знайдений за данною id адресою
+      security:
+        - oauth2: ['write']
+  /user/location:
+    get:
+      tags:
+        - user
+      summary: Локація користувача
+      description: Повертає локацію зареєстрованого користувача
+      operationId: getUserLocation
+      responses:
+        '200':
+          description: Успішний запит
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Location'
+        '401':
+          description: Користувач не авторизований
+        '404':
+          description: Локація не встановлена
+      security:
+        - oauth2: ['read']
+  /ad:
+    post:
+      tags:
+        - ad
+      summary: Створення оголошення
+      description: Створює нове оголошення
+      requestBody:
+        description: Створення об'єкту Користувач
+        content:
+          application/json:
+            schema: 
+              $ref: '#/components/schemas/Ad'
+          application/xml:
+            schema:
+              $ref: '#/components/schemas/Ad'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Ad'
+      responses:
+        default:
+          description: Оголошення успішно створено
+          content:
+            application/json:
+              schema: 
+                $ref: '#/components/schemas/Ad'
+            application/xml:
+              schema:
+                $ref: '#/components/schemas/Ad'
+      security:
+        - oauth2: ['write']
+  /ad/{adId}:
+    get:
+      tags:
+        - ad
+      summary: Повернути оголошення за id адресою
+      description: Повертає оголошення за id адресою
+      parameters:
+       - name: adId
+         in: path
+         description: Повертає оголошення за заданною id адресою
+         required: true
+         schema:
+          type: integer
+          format: int64
+       - name: page
+         in: query
+         description: Номер сторінки
+         required: false
+         schema: 
+           type: integer
+           default: 1
+       - name: limit
+         in: query
+         description: Кількість записів на сторінці
+         required: false
+         schema: 
+          type: integer
+          default: 10
+      responses:
+        '200':
+          description: Успішний запит
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Ad'          
+            application/xml:
+              schema:
+                $ref: '#/components/schemas/Ad'
+        '400':
+          description: Невдалий запит
+      security:
+        - oauth2: ['read']
+        - publicAuth: []
+    put:
+      tags:
+        - ad
+      summary: Редагувати оголошення за id адресою
+      description: Редагує оголошення за id адресою
+      parameters:
+       - name: adId
+         in: path
+         description: Повертає оголошення за заданою id адресою
+         required: true
+         schema:
+          type: integer
+          format: int64
+      requestBody:
+        description: Редагування об'єкту Оголошення
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Ad'
+          application/xml:
+            schema:
+              $ref: '#/components/schemas/Ad'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Ad'
+      responses:
+        '200': 
+          description: Успішно відредаговано оголошення
+        '400': 
+          description: Невірна id адреса
+        '404':
+          description: Оголошення за заданною id адресою не знайдено
+      security:
+        - oauth2: ['write']
+    delete:
+      tags:
+        - ad
+      summary: Видалити оголошення за id адресою
+      description: Видаляє оголошення за id адресою
+      parameters:
+       - name: adId
+         in: path
+         description: Повертає оголошення за заданною id адресою
+         required: true
+         schema:
+          type: integer
+          format: int64
+      responses:
+        '200':
+          description: Успішно видалено оголошення
+        '400':
+          description: Невірна id адреса
+        '404':
+          description: Оголошення за заданною id адресою не знайдено
+      security:
+        - oauth2: ['write']
+  /ad/public:
+    get:
+      tags:
+        - ad
+      summary: Отримати публічні оголошення
+      description: Повертає список публічних оголошень, доступних незареєстрованим користувачам
+      operationId: getPublicAds
+      parameters:
+       - name: page
+         in: query
+         description: Номер сторінки
+         required: false
+         schema: 
+           type: integer
+           default: 1
+       - name: limit
+         in: query
+         description: Кількість записів на сторінці
+         required: false
+         schema: 
+          type: integer
+          default: 10
+      responses:
+        '200':
+          description: Успішний запит
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Ad'
+      security:
+        - oauth2: ['read']
+        - publicAuth: []
+  /ads/popular:
+    get:
+      tags:
+        - ad
+      summary: Найпопулярніші оголошення
+      description: Повертає список найпопулярніших оголошень
+      operationId: getPopularAds
+      responses:
+        '200':
+          description: Успішний запит
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Ad'
+        '404':
+          description: Немає доступних оголошень
+      security:
+        - oauth2: ['read']
+        - publicAuth: []
+  /ads/sorted:
+    get:
+      tags:
+        - ad
+      summary: Відсортовані оголошення
+      description: Повертає відсортовані оголошення за категорією та типом
+      operationId: getSortedAds
+      parameters:
+        - name: category
+          in: query
+          description: Категорія оголошення
+          required: true
+          schema:
+            type: string
+        - name: type
+          in: query
+          description: Тип оголошення
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Успішний запит
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Ad'
+        '404':
+          description: Немає доступних оголошень
+      security:
+        - oauth2: ['read']
+        - publicAuth: []
+  /category:
+    post:
+      tags:
+        - ad
+      summary: Створити нову категорію
+      description: Створює нову категорію
+      operationId: createCategory
+      requestBody:
+        description: Створення об'єкту Категорія
+        content:
+          application/json:
+            schema: 
+              $ref: '#/components/schemas/Category'
+      responses:
+        default:
+          description: Категорія успішно створена
+          content:
+            application/json:
+              schema: 
+                $ref: '#/components/schemas/Category'
+      security:
+        - oauth2: ['admin']
+    get:
+      tags:
+        - ad
+      summary: Отримати всі категорії
+      description: Повертає всі існуючі категорії
+      operationId: getAllCategories
+      responses:
+        '200':
+          description: Успішний запит
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Category'
+      security:
+        - oauth2: ['read']
+        - publicAuth: []
+  /category/{categoryId}:
+    get:
+      tags:
+        - ad
+      summary: Отримати категорію за id
+      description: Повертає категорію за id
+      operationId: getCategoryById
+      parameters:
+        - name: categoryId
+          in: path
+          description: Повертає категорію по id
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: Успішний запит
+          content:
+            application/json:
+              schema: 
+                $ref: '#/components/schemas/Category'
+        '404':
+          description: Категорія не знайдена за данною id адресою
+      security:
+        - oauth2: ['read']
+        - publicAuth: []
+  /location:
+    post:
+      tags:
+        - location
+      summary: Створити нову локацію
+      description: Створює нову локацію
+      operationId: createLocation
+      requestBody:
+        description: Створення об'єкту Локація
+        content:
+          application/json:
+            schema: 
+              $ref: '#/components/schemas/Location'
+      responses:
+        default:
+          description: Локація успішно створена
+          content:
+            application/json:
+              schema: 
+                $ref: '#/components/schemas/Location'
+      security:
+        - oauth2: ['admin']
+    get:
+      tags:
+        - location
+      summary: Отримати всі локації
+      description: Повертає всі існуючі локації
+      operationId: getAllLocations
+      responses:
+        '200':
+          description: Успішний запит
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Location'
+      security:
+        - oauth2: ['read']
+  /location/{locationId}:
+    get:
+      tags:
+        - location
+      summary: Отримати локацію за id
+      description: Повертає локацію за id
+      operationId: getLocationById
+      parameters:
+        - name: locationId
+          in: path
+          description: Повертає локацію по id
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: Успішний запит
+          content:
+            application/json:
+              schema: 
+                $ref: '#/components/schemas/Location'
+        '404':
+          description: Локація не знайдена за данною id адресою
+      security:
+        - oauth2: ['read']
+components:
+  schemas:
+    Location: 
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+          example: 1
+        name:
+          type: string
+          example: 'Locaion 1'
+      xml:
+        name: location
+    Category:
+      type: object
+      properties:
+        id: 
+          type: integer
+          format: int64
+          example: 2
+        name:
+          type: string
+          example: 'Category 2'
+      xml:
+        name: category
+    User:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+          example: 12
+        username:
+          type: string
+          example: TheUser
+        firstName:
+          type: string
+          example: FirstName
+        lastName:
+          type: string
+          example: LastName
+        email:
+          type: string
+          example: john@email.com
+        password:
+          type: string
+          example: 'password'
+        phone:
+          type: string
+          example: '123'
+        userStatus:
+          type: integer
+          format: int64
+          example: 1
+        locationId:
+          type: integer
+          format: int64
+          example: 1
+      xml: 
+        name: user
+    Ad:
+      type: object
+      properties:
+        id: 
+          type: integer
+          format: int64
+          example: 4
+        userId:
+          type: integer
+          format: int64
+          example: 12
+        categoryId:
+          type: integer
+          format: int64
+          example: 1
+        locationId:
+          type: integer
+          format: int64
+          example: 2
+        title:
+          type: string
+          example: TheTitle
+        content:
+          type: string
+          example: TheContent
+        createdAd:
+          type: string 
+          format: date-time
+          example: '2023-01-01T12:00:00Z'
+        updatedAd:
+          type: string
+          format: date-time
+          example: '2023-01-01T12:00:00Z'
+        visibility:
+          type: string
+          enum:
+            - public
+            - local
+          example: "public"
+      xml:
+        name: ad
+  securitySchemes:
+    oauth2:
+      type: oauth2
+      flows:
+        password:
+          tokenUrl: /token
+          scopes:
+            read: Read access
+            write: Write access
+    publicAuth:
+      type: apiKey
+      in: query
+      name: access_token
